@@ -7,15 +7,16 @@ defmodule MatricularCursoCa.Infrastructure.Adapters.Repository.Estudiante.Estudi
   # estamos diciendo que va a implementar el behavior EstudianteBehaviour
   @behaviour MatricularCursoCa.Domain.Behaviours.EstudianteBehaviour
 
+
   def register(entity) do
-    case to_data(entity) |> Repo.insert do
+    case to_data(entity) |> Repo.insert  do
       {:ok, entity} -> {:ok, entity |> to_entity()}
       error -> error
     end
   end
 
   def find_by_id(id) do
-    case EstudianteData |> Repo.get!(id) do
+    case EstudianteData |> Repo.get!(id) |> Repo.preload(:cursos)  do
       {:ok, entity} -> {:ok, entity |> to_entity()}
       error -> error
     end
@@ -23,7 +24,7 @@ defmodule MatricularCursoCa.Infrastructure.Adapters.Repository.Estudiante.Estudi
   end
 
   def find_all_students() do
-    {:ok, EstudianteData |> Repo.all()}
+    {:ok, (EstudianteData  |> Repo.all() |> Repo.preload(:cursos))}
   end
 
   def delete_by_id(id) do
@@ -38,19 +39,20 @@ defmodule MatricularCursoCa.Infrastructure.Adapters.Repository.Estudiante.Estudi
     estudiante = Repo.get!(EstudianteData, id)
     estudiante = Ecto.Changeset.change estudiante, nombres: entity.nombres, apellidos: entity.apellidos,
     promedio: entity.promedio, edad: entity.edad, num_identi: entity.num_identi
-    case Repo.update estudiante do
-      {:ok, entity} -> {:ok, entity |> to_entity}
-      error -> error
-end
+      case Repo.update estudiante do
+        {:ok, entity} -> {:ok, entity |> to_entity}
+        error -> error
+      end
   end
 
   defp to_entity(nil), do: nil
   defp to_entity(data) do
-    struct(Estudiante, data |> Map.from_struct)
+    struct(Estudiante, data |> Map.from_struct())
   end
 
   defp to_data(entity) do
-    prop = EstudianteData.changeset(%EstudianteData{}, entity |> Map.from_struct).changes
+    prop = EstudianteData.changeset(%EstudianteData{}, entity |> Map.from_struct()).changes
     struct(EstudianteData, prop)
   end
+
 end

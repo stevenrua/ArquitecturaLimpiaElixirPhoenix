@@ -1,4 +1,6 @@
 defmodule MatricularCursoCa.Infrastructure.Adapters.Repository.Estudiante.Data.EstudianteData do
+  alias MatricularCursoCa.Infrastructure.Adapters.Repository.Curso.Data.CursoData
+  #alias MatricularCursoCa.Infrastructure.Adapters.Repository.EstudianteCurso.Data.EstudianteCursoData
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -13,11 +15,10 @@ defmodule MatricularCursoCa.Infrastructure.Adapters.Repository.Estudiante.Data.E
     field :nombres, :string
     field :num_identi, :string
     field :promedio, :float
-    # many_to_many :cursos, MatricularCurso.Cursos.Curso, join_through: "estudiantes_cursos"
-    # belongs_to :colegio, MatricularCurso.Colegios.Colegio
+    #has_many :cursos, EstudianteCursoData, foreign_key: :curso_id -- intenta funcionar
+    many_to_many :cursos, CursoData, join_through: "estudiantes_cursos"
     timestamps()
   end
-
   @doc false
   def changeset(estudiante, attrs) do
     IO.puts("Entra y valida")

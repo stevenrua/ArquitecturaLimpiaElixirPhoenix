@@ -13,7 +13,6 @@ defmodule MatricularCursoCa.Domain.UseCases.RegisterEstudianteUseCase do
   @spec register(map()) :: {:error, atom()} | {:ok, Estudiante.t()}
   def register(data) do
     map_with_id = Map.put(data, :id, generate_uuid_estudiante())
-
     with {:ok, estudiante} <- Estudiante.new(map_with_id[:id], map_with_id[:nombres], map_with_id[:apellidos], map_with_id[:edad], map_with_id[:num_identi], map_with_id[:promedio]),
           {:ok, new_estudiante} <- register_estudiante(estudiante)  do
             Logger.info("New student: #{inspect(new_estudiante)}")

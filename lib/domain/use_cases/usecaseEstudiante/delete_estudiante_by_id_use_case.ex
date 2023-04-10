@@ -1,5 +1,5 @@
 defmodule MatricularCursoCa.Domain.UseCases.DeleteEstudianteByIdUseCase do
-  alias MatricularCursoCa.Domain.Model.Estudiante
+  #alias MatricularCursoCa.Domain.Model.Estudiante
   require Logger
   @estudiante_behaviour Application.compile_env(:matricular_curso_ca, :estudiante_behaviour)
   ## TODO Add functions to business logic app

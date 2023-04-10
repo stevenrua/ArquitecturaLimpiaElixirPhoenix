@@ -41,6 +41,7 @@ defmodule MatricularCursoCa.MixProject do
       {:poison, "~> 4.0"},
       {:cors_plug, "~> 2.0"},
       {:timex, "~> 3.0"},
+      {:amqp, "~> 3.2"},
       {:excoveralls, "~> 0.10", only: :test},
       {:ex_unit_sonarqube, "~> 0.1", only: :test},
     ]

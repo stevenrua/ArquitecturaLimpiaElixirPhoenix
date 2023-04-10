@@ -3,13 +3,18 @@ defmodule MatricularCursoCa.Infrastructure.EntryPoint.ApiRest do
   @moduledoc """
   Access point to the rest exposed services
   """
-  #lias MatricularCursoCa.Utils.DataTypeUtils
+
   alias MatricularCursoCa.Domain.UseCases.UpdateStudentUseCase
   alias MatricularCursoCa.Infrastructure.EntryPoint.ErrorHandler
   alias MatricularCursoCa.Domain.UseCases.RegisterEstudianteUseCase
   alias MatricularCursoCa.Domain.UseCases.GetEstudianteUseCase
   alias MatricularCursoCa.Domain.UseCases.GetAllStudentsUseCase
   alias MatricularCursoCa.Domain.UseCases.DeleteEstudianteByIdUseCase
+  alias MatricularCursoCa.Domain.UseCases.UsecaseCursos.RegisterCursoUseCase
+  alias MatricularCursoCa.Domain.UseCases.UsecaseCursos.GetAllCursosUseCase
+  alias MatricularCursoCa.Domain.UseCases.UsecaseCursos.GetCursoUseCase
+  alias MatricularCursoCa.Domain.UseCases.UsecaseCursos.UpdateCursoUseCase
+  alias MatricularCursoCa.Infrastructure.Adapters.Rabbitmq.Rabbitmq
   require Logger
   use Plug.Router
   use Timex
@@ -32,30 +37,33 @@ defmodule MatricularCursoCa.Infrastructure.EntryPoint.ApiRest do
     init_opts: PlugCheckup.Options.new(json_encoder: Jason, checks: MatricularCursoCa.Infrastructure.EntryPoint.HealthCheck.checks)
   )
 
+
   get "/matricular_curso_ca/api/hello/" do
     build_response("Hello World", conn)
   end
 
-  get "/matricular_curso_ca/api/estudiante/:id" do
-    estudiante = GetEstudianteUseCase.find_by_id(%{id: id})
-    estudiante = Map.drop(estudiante, [:__meta__, :updated_at])
-    build_response(estudiante, conn)
+  defp rabbitMQ(entity, event) do
+    entity = Map.put(entity, :evento, event)
+    Rabbitmq.publish(inspect(entity, pretty: true), "cola_steven")
   end
+
+  #metodos http para estudiantes
 
   get "/matricular_curso_ca/api/estudiante/" do
     case GetAllStudentsUseCase.find_all_students() do
       {:ok, estudiantes} -> estudiantes = estudiantes |> Enum.map(fn elemento ->
         Map.drop(elemento, [:__meta__, :updated_at, :inserted_at])end)
-      estudiantes |> build_response(conn)
+        #Rabbitmq.consume("cola_steven")
+        estudiantes |> build_response(conn)
       {:error, error} -> %{status: 500, body: error}
     end
   end
 
-  delete "/matricular_curso_ca/api/estudiante/:id" do
-    case DeleteEstudianteByIdUseCase.delete_student(%{id: id}) do
-      {:ok, estudiante} -> estudiante |> build_response(conn)
-      {:error, error} -> %{status: 500, body: error}
-    end
+  get "/matricular_curso_ca/api/estudiante/:id" do
+    estudiante = GetEstudianteUseCase.find_by_id(%{id: id})
+    estudiante = Map.drop(estudiante, [:__meta__, :updated_at, :inserted_at])
+    rabbitMQ(estudiante, "Estudiante consultado")
+    build_response(estudiante, conn)
   end
 
   post "/matricular_curso_ca/api/estudiante" do
@@ -64,7 +72,9 @@ defmodule MatricularCursoCa.Infrastructure.EntryPoint.ApiRest do
     # Llamamos a nuestro caso de uso, le pasamos nuestro mapa convertido y hacemos las validaciones con pattern matching
 
     case RegisterEstudianteUseCase.register(params_map) do
-      {:ok, estudiante} -> estudiante |> build_response(conn)
+      {:ok, estudiante} ->
+        rabbitMQ(estudiante, "Estudiante registrado")
+        estudiante |> build_response(conn)
       {:error, error} -> %{status: 500, body: error}
     end
   end
@@ -75,7 +85,63 @@ defmodule MatricularCursoCa.Infrastructure.EntryPoint.ApiRest do
     # Llamamos a nuestro caso de uso, le pasamos nuestro mapa convertido y hacemos las validaciones con pattern matching
     params_map = %{params_map | id: id}
     case UpdateStudentUseCase.update_student(params_map) do
-      {:ok, estudiante} -> estudiante |> build_response(conn)
+      {:ok, estudiante} ->
+        rabbitMQ(estudiante, "Estudiante actualizado")
+        estudiante |> build_response(conn)
+      {:error, error} -> %{status: 500, body: error}
+    end
+  end
+
+  delete "/matricular_curso_ca/api/estudiante/:id" do
+    case DeleteEstudianteByIdUseCase.delete_student(%{id: id}) do
+      {:ok, estudiante} ->
+        rabbitMQ(estudiante, "Estudiante eliminado")
+        estudiante |> build_response(conn)
+      {:error, error} -> %{status: 500, body: error}
+    end
+  end
+
+  # metodos http para cursos
+
+  get "/matricular_curso_ca/api/cursos/" do
+    case GetAllCursosUseCase.find_all_cursos() do
+      {:ok, cursos} -> cursos = cursos |> Enum.map(fn elemento ->
+        Map.drop(elemento, [:__meta__, :updated_at, :inserted_at])end)
+        #Rabbitmq.consume("cola_steven")
+        cursos |> build_response(conn)
+      {:error, error} -> %{status: 500, body: error}
+    end
+  end
+
+  get "/matricular_curso_ca/api/cursos/:id" do
+    curso = GetCursoUseCase.find_by_id4(%{id: id})
+    curso = Map.drop(curso, [:__meta__, :updated_at])
+    rabbitMQ(curso, "Curso consultado")
+    build_response(curso, conn)
+  end
+
+  post "/matricular_curso_ca/api/cursos" do
+    # Convertimos el mapa con formato de String al formato de átomos
+    params_map = conn.params |> Map.new(fn {key, value} -> {String.to_atom(key), value} end)
+    # Llamamos a nuestro caso de uso, le pasamos nuestro mapa convertido y hacemos las validaciones con pattern matching
+
+    case RegisterCursoUseCase.register(params_map) do
+      {:ok, curso} ->
+        rabbitMQ(curso, "curso registrado")
+        curso |> build_response(conn)
+      {:error, error} -> %{status: 500, body: error}
+    end
+  end
+
+  put "/matricular_curso_ca/api/cursos/:id" do
+    # Convertimos el mapa con formato de String al formato de átomos
+    params_map = conn.params |> Map.new(fn {key, value} -> {String.to_atom(key), value} end)
+    # Llamamos a nuestro caso de uso, le pasamos nuestro mapa convertido y hacemos las validaciones con pattern matching
+    params_map = %{params_map | id: id}
+    case UpdateCursoUseCase.update_curso(params_map) do
+      {:ok, curso} ->
+        rabbitMQ(curso, "curso actualizado")
+        curso |> build_response(conn)
       {:error, error} -> %{status: 500, body: error}
     end
   end

@@ -25,8 +25,17 @@ config :matricular_curso_ca, MatricularCursoCa.Infrastructure.Adapters.Repositor
        show_sensitive_data_on_connection_error: true,
        pool_size: 10
 
+config :matricular_curso_ca, :rabbitmq,
+       hostname: "localhost",
+       port: 5672,
+       username: "guest",
+       password: "guest",
+       virtual_host: "/"
+
 
 # detalle de los adaptadores que vamos a usar en nuestro proyecto
 config :matricular_curso_ca,
         estudiante_behaviour: MatricularCursoCa.Infrastructure.Adapters.Repository.Estudiante.EstudianteDataRepository,
+        curso_behaviour: MatricularCursoCa.Infrastructure.Adapters.Repository.Curso.CursoDataRepository,
+        estudiante_curso_behaviour: MatricularCursoCa.Infrastructure.Adapters.Repository.EstudianteCurso.EstudianteCursoDataRepository,
         generate_uuid_behaviour: MatricularCursoCa.Infrastructure.DrivenAdapters.Repository.Generic.UuidData
